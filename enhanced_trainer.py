@@ -55,24 +55,24 @@ class HistoricalDataTrainer:
             # Training parameters
             "symbols": ["BTCUSDT"],
             "initial_balance": 10000.0,
-            "max_position_size": 0.1,
+            "max_position_size": 0.05,  # Reduced position size for better risk management
             "transaction_fee": 0.0004,
             
             # RL model parameters
             "state_dim": 30,
             "action_dim": 3,
-            "hidden_dims": [128, 64, 32],
-            "learning_rate": 3e-4,
-            "gamma": 0.99,
-            "gae_lambda": 0.95,
-            "clip_ratio": 0.2,
+            "hidden_dims": [256, 128, 64],  # Increased network capacity
+            "learning_rate": 1e-4,  # Reduced learning rate for more stable learning
+            "gamma": 0.995,  # Increased discount factor for longer-term rewards
+            "gae_lambda": 0.97,  # Increased lambda for better advantage estimation
+            "clip_ratio": 0.1,  # Reduced clip ratio for more conservative updates
             "value_coef": 0.5,
-            "entropy_coef": 0.01,
+            "entropy_coef": 0.02,  # Increased entropy coefficient for more exploration
             
             # Risk management parameters
-            "max_risk_per_trade": 0.02,
-            "max_daily_risk": 0.05,
-            "max_drawdown": 0.15,
+            "max_risk_per_trade": 0.01,  # Reduced risk per trade
+            "max_daily_risk": 0.03,  # Reduced daily risk
+            "max_drawdown": 0.10,  # Reduced maximum drawdown
             
             # System parameters
             "data_dir": "data",
@@ -385,14 +385,15 @@ class HistoricalDataTrainer:
             # Return zeros as fallback
             return np.zeros(self.config["state_dim"])
     
-    def train(self, data_file, num_episodes=100, save_interval=10):
+    def train(self, data_file, num_episodes=100, save_interval=5, early_stop_patience=10):
         """
-        Train the RL agent using historical data.
+        Train the RL agent using historical data with improved monitoring and early stopping.
         
         Args:
             data_file: Path to historical data file
             num_episodes: Number of training episodes
             save_interval: Interval for saving the model
+            early_stop_patience: Number of episodes with no improvement before early stopping
         """
         try:
             # Initialize components
@@ -417,6 +418,10 @@ class HistoricalDataTrainer:
             logger.info(f"Starting training for {num_episodes} episodes")
             
             # Training loop
+            best_roi = -float('inf')
+            no_improvement_count = 0
+            best_model_path = os.path.join(self.config["models_dir"], "best_ppo_agent.pt")
+            
             for episode in range(num_episodes):
                 logger.info(f"Starting episode {episode+1}/{num_episodes}")
                 
@@ -687,6 +692,22 @@ class HistoricalDataTrainer:
                 logger.info(f"Final balance: ${final_balance:.2f} (ROI: {roi:.2f}%)")
                 logger.info(f"Training metrics: {metrics}")
                 
+                # Check for improvement and implement early stopping
+                if roi > best_roi:
+                    best_roi = roi
+                    no_improvement_count = 0
+                    # Save best model
+                    self.rl_agent.save_model(best_model_path)
+                    logger.info(f"New best model saved with ROI: {roi:.2f}%")
+                else:
+                    no_improvement_count += 1
+                    logger.info(f"No improvement for {no_improvement_count} episodes. Best ROI: {best_roi:.2f}%")
+                    
+                    # Check if early stopping criteria is met
+                    if no_improvement_count >= early_stop_patience:
+                        logger.info(f"Early stopping triggered after {episode+1} episodes due to no improvement for {early_stop_patience} episodes")
+                        break
+                
                 # Save model at intervals
                 if (episode + 1) % save_interval == 0:
                     model_path = os.path.join(self.config["models_dir"], f"ppo_agent_ep{episode+1}.pt")
@@ -712,7 +733,8 @@ def main():
     parser = argparse.ArgumentParser(description='Enhanced Historical Data Trainer for Autonomous Trading Bot')
     parser.add_argument('--data-file', type=str, required=True, help='Path to historical data file')
     parser.add_argument('--episodes', type=int, default=100, help='Number of training episodes')
-    parser.add_argument('--save-interval', type=int, default=10, help='Interval for saving the model')
+    parser.add_argument('--save-interval', type=int, default=5, help='Interval for saving the model')
+    parser.add_argument('--early-stop', type=int, default=10, help='Number of episodes with no improvement before early stopping')
     
     args = parser.parse_args()
     
@@ -720,7 +742,7 @@ def main():
     trainer = HistoricalDataTrainer()
     
     # Train the RL agent
-    trainer.train(args.data_file, args.episodes, args.save_interval)
+    trainer.train(args.data_file, args.episodes, args.save_interval, args.early_stop)
 
 if __name__ == "__main__":
     main()

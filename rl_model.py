@@ -121,15 +121,15 @@ class PPOAgent:
         self,
         state_dim: int = 30,
         action_dim: int = 3,
-        hidden_dims: List[int] = [128, 64, 32],
-        lr_policy: float = 3e-4,
-        lr_value: float = 1e-3,
-        gamma: float = 0.99,
-        gae_lambda: float = 0.95,
-        clip_ratio: float = 0.2,
+        hidden_dims: List[int] = [256, 128, 64],  # Increased network capacity
+        lr_policy: float = 1e-4,  # Reduced learning rate for more stable learning
+        lr_value: float = 5e-4,   # Reduced learning rate for more stable learning
+        gamma: float = 0.995,     # Increased discount factor for longer-term rewards
+        gae_lambda: float = 0.97, # Increased lambda for better advantage estimation
+        clip_ratio: float = 0.1,  # Reduced clip ratio for more conservative updates
         value_coef: float = 0.5,
-        entropy_coef: float = 0.01,
-        max_grad_norm: float = 0.5,
+        entropy_coef: float = 0.02, # Increased entropy coefficient for more exploration
+        max_grad_norm: float = 0.3, # Reduced gradient norm for more stable updates
         device: str = None
     ):
         """
@@ -643,8 +643,27 @@ class TradingEnvironment:
         if action == 0:  # Hold
             # No action, just calculate unrealized PnL
             unrealized_pnl = self.position * (current_price - self.last_price)
-            reward = unrealized_pnl / portfolio_value_before if portfolio_value_before > 0 else 0
+            
+            # Improved reward function with stability and risk management components
+            base_reward = unrealized_pnl / portfolio_value_before if portfolio_value_before > 0 else 0
+            
+            # Add time decay to discourage holding positions too long without profit
+            time_factor = 1.0 / (1.0 + 0.01 * len(self.portfolio_values))
+            
+            # Calculate portfolio volatility for risk adjustment
+            if len(self.portfolio_values) > 1:
+                portfolio_returns = np.diff(self.portfolio_values) / self.portfolio_values[:-1]
+                volatility_penalty = min(1.0, 0.5 * np.std(portfolio_returns) * 10) if len(portfolio_returns) > 0 else 0
+            else:
+                volatility_penalty = 0
+                
+            # Combine components for final reward
+            reward = base_reward * (1 - volatility_penalty) * time_factor
+            
             info['action_taken'] = 'hold'
+            info['base_reward'] = base_reward
+            info['volatility_penalty'] = volatility_penalty
+            info['time_factor'] = time_factor
             
         elif action == 1:  # Buy
             if self.position < 0:  # Close short position
@@ -666,11 +685,25 @@ class TradingEnvironment:
                 # Reset position
                 self.position = 0.0
                 self.entry_price = 0.0
-                # Calculate reward
-                reward = realized_pnl / portfolio_value_before if portfolio_value_before > 0 else 0
+                # Calculate improved reward with risk management components
+                base_reward = realized_pnl / portfolio_value_before if portfolio_value_before > 0 else 0
+                
+                # Add reward scaling based on position holding time
+                holding_time = self.current_step - self.trades[-1]['step'] if len(self.trades) > 1 else 1
+                time_bonus = min(1.5, 1.0 + (0.1 * min(holding_time, 10)))
+                
+                # Add reward scaling based on trade size relative to portfolio
+                size_factor = 1.0 - (abs(self.position) * current_price / portfolio_value_before) * 0.5
+                
+                # Combine components for final reward
+                reward = base_reward * time_bonus * size_factor
+                
                 info['action_taken'] = 'close_short'
                 info['realized_pnl'] = realized_pnl
                 info['fee'] = fee
+                info['base_reward'] = base_reward
+                info['time_bonus'] = time_bonus
+                info['size_factor'] = size_factor
                 
             # Open long position
             position_size = self.max_position * self.initial_balance / current_price
