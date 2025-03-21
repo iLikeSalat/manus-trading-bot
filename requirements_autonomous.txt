@@ -1,0 +1,26 @@
+"""
+Requirements file for the Autonomous Trading Bot
+"""
+
+# Core dependencies
+numpy>=1.20.0
+pandas>=1.3.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# PyTorch for RL model
+torch>=1.9.0
+torchvision>=0.10.0
+
+# Binance API
+python-binance>=1.0.15
+
+# Data handling and visualization
+plotly>=5.3.0
+jupyter>=1.0.0
+
+# Utilities
+python-dotenv>=0.19.0
+tqdm>=4.62.0
+requests>=2.26.0
+websocket-client>=1.2.0
