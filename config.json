@@ -1,0 +1,15 @@
+{
+    "binance_api_key": "UVpAHbT7UzM1T1TvTgrev1yHMXX18wUCL9CpwvMGTjDKFlRnxoiXvouToT39BMYp",
+    "binance_api_secret": "mwM6ceAv7c7ixzPXlC6xXIUhbLWZHHazWoTAq6LsBLyeyfFxjZ3TQDV01stIf4i5",
+    "testnet": true,
+    "symbols": ["BTCUSDT"],
+    "intervals": ["1m"],
+    "initial_balance": 10000.0,
+    "max_position_size": 0.1,
+    "transaction_fee": 0.0004,
+    "max_risk_per_trade": 0.02,
+    "max_daily_risk": 0.05,
+    "enable_dynamic_sizing": true,
+    "enable_trailing_stops": true
+  }
+  

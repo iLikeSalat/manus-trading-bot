@@ -132,9 +132,91 @@ class AutonomousTradingBot:
         
         return default_config
     
+    # Synchronous initialization method for use in backtesting
+    def initialize_sync(self):
+        """
+        Initialize all components of the trading bot synchronously.
+        """
+        try:
+            # Create directories
+            os.makedirs(self.config["data_dir"], exist_ok=True)
+            os.makedirs(self.config["models_dir"], exist_ok=True)
+            os.makedirs(self.config["performance_dir"], exist_ok=True)
+            os.makedirs(self.config["dashboard_dir"], exist_ok=True)
+            
+            # Initialize data pipeline
+            self.data_pipeline = DataPipeline(
+                api_key=self.config["binance_api_key"],
+                api_secret=self.config["binance_api_secret"],
+                testnet=self.config["testnet"]
+            )
+            
+            # Initialize risk manager
+            self.risk_manager = RiskManager(
+                max_position_size=self.config["max_position_size"],
+                max_risk_per_trade=self.config["max_risk_per_trade"],
+                max_daily_risk=self.config["max_daily_risk"],
+                max_drawdown=self.config["max_drawdown"],
+                enable_dynamic_sizing=self.config["enable_dynamic_sizing"],
+                enable_trailing_stops=self.config["enable_trailing_stops"]
+            )
+            
+            # Initialize position manager
+            self.position_manager = PositionManager(self.risk_manager)
+            
+            # Initialize performance tracker
+            self.performance_tracker = PerformanceTracker(
+                initial_balance=self.config["initial_balance"],
+                data_dir=self.config["performance_dir"],
+                log_trades=self.config["log_trades"],
+                log_metrics=self.config["log_metrics"],
+                log_interval=self.config["log_interval"],
+                visualization_enabled=self.config["visualization_enabled"]
+            )
+            
+            # Initialize performance dashboard
+            self.performance_dashboard = PerformanceDashboard(
+                performance_tracker=self.performance_tracker,
+                dashboard_dir=self.config["dashboard_dir"]
+            )
+            
+            # Initialize RL agent
+            self.rl_agent = PPOAgent(
+                state_dim=self.config["state_dim"],
+                action_dim=self.config["action_dim"],
+                hidden_dims=self.config["hidden_dims"],
+                lr_policy=self.config["learning_rate"],
+                gamma=self.config["gamma"],
+                gae_lambda=self.config["gae_lambda"],
+                clip_ratio=self.config["clip_ratio"],
+                value_coef=self.config["value_coef"],
+                entropy_coef=self.config["entropy_coef"]
+            )
+            
+            # Initialize trading environment
+            self.trading_env = TradingEnvironment(
+                data_pipeline=self.data_pipeline,
+                initial_balance=self.config["initial_balance"],
+                transaction_fee=self.config["transaction_fee"],
+                max_position=self.config["max_position_size"]
+            )
+            
+            # Load model if exists
+            model_path = os.path.join(self.config["models_dir"], "ppo_agent.pt")
+            if os.path.exists(model_path):
+                self.rl_agent.load_model(model_path)
+                logger.info(f"Model loaded from {model_path}")
+            
+            logger.info("All components initialized successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error initializing components: {str(e)}")
+            return False
+    
     async def initialize(self):
         """
-        Initialize all components of the trading bot.
+        Initialize all components of the trading bot asynchronously.
         """
         try:
             # Create directories
@@ -424,8 +506,8 @@ class AutonomousTradingBot:
         try:
             # Initialize components if not already initialized
             if not self.rl_agent or not self.risk_manager or not self.performance_tracker:
-                # Use asyncio.run to call the async initialize method
-                if not asyncio.run(self.initialize()):
+                # Use synchronous initialization instead of async
+                if not self.initialize_sync():
                     logger.error("Failed to initialize components")
                     self.is_backtesting = False
                     return
@@ -449,6 +531,7 @@ class AutonomousTradingBot:
                 # Fetch historical data (synchronous version)
                 klines = []
                 try:
+                    # Handle potential exceptions during data fetching
                     klines = self.data_pipeline.client.get_historical_klines(
                         symbol=symbol,
                         interval=interval,
@@ -460,22 +543,39 @@ class AutonomousTradingBot:
                     self.is_backtesting = False
                     return None
                 
+                # Check if we got any data
+                if not klines or len(klines) == 0:
+                    logger.error("No historical data retrieved")
+                    self.is_backtesting = False
+                    return None
+                
                 # Convert to DataFrame
-                historical_data = pd.DataFrame(klines, columns=[
-                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                    'close_time', 'quote_asset_volume', 'number_of_trades',
-                    'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-                ])
-                
-                # Convert types
-                historical_data['timestamp'] = pd.to_datetime(historical_data['timestamp'], unit='ms')
-                historical_data['open'] = historical_data['open'].astype(float)
-                historical_data['high'] = historical_data['high'].astype(float)
-                historical_data['low'] = historical_data['low'].astype(float)
-                historical_data['close'] = historical_data['close'].astype(float)
-                historical_data['volume'] = historical_data['volume'].astype(float)
-                
-                logger.info(f"Fetched {len(historical_data)} historical candles from Binance")
+                try:
+                    historical_data = pd.DataFrame(klines, columns=[
+                        'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                        'close_time', 'quote_asset_volume', 'number_of_trades',
+                        'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+                    ])
+                    
+                    # Convert types
+                    historical_data['timestamp'] = pd.to_datetime(historical_data['timestamp'], unit='ms')
+                    historical_data['open'] = historical_data['open'].astype(float)
+                    historical_data['high'] = historical_data['high'].astype(float)
+                    historical_data['low'] = historical_data['low'].astype(float)
+                    historical_data['close'] = historical_data['close'].astype(float)
+                    historical_data['volume'] = historical_data['volume'].astype(float)
+                    
+                    logger.info(f"Fetched {len(historical_data)} historical candles from Binance")
+                except Exception as e:
+                    logger.error(f"Error processing historical data: {str(e)}")
+                    self.is_backtesting = False
+                    return None
+            
+            # Check if we have enough data
+            if len(historical_data) < 2:
+                logger.error("Not enough historical data for backtesting")
+                self.is_backtesting = False
+                return None
             
             # Create backtesting environment
             backtest_env = TradingEnvironment(
@@ -714,7 +814,7 @@ class AutonomousTradingBot:
             # Set backtesting state
             self.is_backtesting = False
 
-async def main():
+def main():
     """
     Main function to run the trading bot.
     """
@@ -733,32 +833,20 @@ async def main():
     # Create trading bot
     bot = AutonomousTradingBot(args.config)
     
-    try:
-        if args.train:
-            # Train the RL agent
-            await bot.train(num_episodes=args.episodes)
-        elif args.backtest:
-            # Run backtesting (non-async method)
-            if not args.start_date or not args.end_date:
-                logger.error("Start date and end date are required for backtesting")
-                return
-            
-            # Call the non-async backtest method directly
-            bot.backtest(args.start_date, args.end_date, args.data_file)
-        else:
-            # Run the trading bot
-            await bot.start()
-            
-            # Keep running until interrupted
-            while True:
-                await asyncio.sleep(1)
-                
-    except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received")
-    finally:
-        # Stop the bot
-        if bot.is_running:
-            await bot.stop()
+    if args.train:
+        # Train the RL agent (async)
+        asyncio.run(bot.train(num_episodes=args.episodes))
+    elif args.backtest:
+        # Run backtesting (sync)
+        if not args.start_date or not args.end_date:
+            logger.error("Start date and end date are required for backtesting")
+            return
+        
+        # Call the non-async backtest method directly
+        bot.backtest(args.start_date, args.end_date, args.data_file)
+    else:
+        # Run the trading bot (async)
+        asyncio.run(bot.start())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

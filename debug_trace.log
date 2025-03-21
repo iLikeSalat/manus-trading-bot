@@ -1,0 +1,82 @@
+2025-03-21 21:35:42,427 - debug - ERROR - main_autonomous_debug.py:1032 - Performance report generation error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 1023, in backtest
+    report = self.performance_tracker.generate_performance_report(report_dir)
+  File "C:\Users\Thomas\manus-trading-bot\performance_tracking.py", line 343, in generate_performance_report
+    json.dump(report, f, indent=2)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 439, in _iterencode
+    o = _default(o)
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type datetime is not JSON serializable
+
+2025-03-21 21:37:03,189 - debug - ERROR - main_autonomous_debug.py:1032 - Performance report generation error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 1027, in backtest
+    logger.info(f"Performance report: {report['files'].get('html_report', '')}")
+                                       ~~~~~~^^^^^^^^^
+KeyError: 'files'
+
+2025-03-21 21:37:09,441 - debug - ERROR - main_autonomous_debug.py:1032 - Performance report generation error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 1027, in backtest
+    logger.info(f"Performance report: {report['files'].get('html_report', '')}")
+                                       ~~~~~~^^^^^^^^^
+KeyError: 'files'
+
+2025-03-21 21:41:11,622 - debug - ERROR - main_autonomous_debug.py:1032 - Performance report generation error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 1023, in backtest
+    report = self.performance_tracker.generate_performance_report(report_dir)
+  File "C:\Users\Thomas\manus-trading-bot\performance_tracking.py", line 343, in generate_performance_report
+    json.dump(report, f, indent=2)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 439, in _iterencode
+    o = _default(o)
+  File "C:\Users\Thomas\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type datetime is not JSON serializable
+
+2025-03-21 21:42:30,603 - debug - ERROR - main_autonomous_debug.py:1032 - Performance report generation error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 1027, in backtest
+    logger.info(f"Performance report: {report['files'].get('html_report', '')}")
+                                       ~~~~~~^^^^^^^^^
+KeyError: 'files'
+
+2025-03-21 21:43:41,192 - debug - ERROR - main_autonomous_debug.py:601 - Training error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 539, in train
+    await self.data_pipeline.start(self.config["symbols"], self.config["intervals"])
+  File "C:\Users\Thomas\manus-trading-bot\data_pipeline.py", line 86, in start
+    await self._start_websocket_connections(symbol)
+  File "C:\Users\Thomas\manus-trading-bot\data_pipeline.py", line 117, in _start_websocket_connections
+    kline_socket = self.socket_manager.start_kline_socket(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BinanceSocketManager' object has no attribute 'start_kline_socket'. Did you mean: 'options_kline_socket'?
+
+2025-03-21 21:48:28,182 - debug - ERROR - main_autonomous_debug.py:601 - Training error: Traceback (most recent call last):
+  File "C:\Users\Thomas\manus-trading-bot\main_autonomous_debug.py", line 553, in train
+    state = self.trading_env.reset()
+  File "C:\Users\Thomas\manus-trading-bot\rl_model.py", line 525, in reset
+    state = self._get_state()
+  File "C:\Users\Thomas\manus-trading-bot\rl_model.py", line 585, in _get_state
+    market_features = self.data_pipeline.get_latest_features('BTCUSDT')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataPipeline' object has no attribute 'get_latest_features'. Did you mean: 'get_latest_trades'?
+

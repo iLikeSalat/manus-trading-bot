@@ -1,6 +1,4 @@
-"""
-Requirements file for the Autonomous Trading Bot
-"""
+# Requirements for the Autonomous Trading Bot
 
 # Core dependencies
 numpy>=1.20.0

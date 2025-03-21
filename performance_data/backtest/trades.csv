@@ -1,0 +1,3 @@
+trade_id,symbol,type,entry_time,exit_time,entry_price,exit_price,size,pnl,pnl_percent,duration,exit_reason
+backtest_trade_final_close_long,BTCUSDT,long,2023-12-30,2023-12-31,18256.850507385272,11904.842077217429,0.0547739600319058,-347.9246558763422,-34.79246558763422,0,end_of_backtest
+backtest_trade_final_close_short,BTCUSDT,short,2023-12-30,2023-12-31,22049.003977953416,21657.010350266228,0.04535352258994965,-17.77829184842722,-1.777829184842722,0,end_of_backtest
